@@ -1,13 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { Observable } from "rxjs/Observable";
 
 @Injectable()
 export class ScrollSpyService {
 
-  constructor() { }
+  constructor(private zone: NgZone) { }
 
   public scrollSpyOn(querySelector) {
-    return Observable.fromEvent(window, 'scroll')
+    return this.onScrollEvent
       .mergeMap(event => {
         const arr = Array.prototype.slice.call(document.querySelectorAll(querySelector))
           .filter(item => this.isElementInViewport(item));
@@ -17,7 +17,7 @@ export class ScrollSpyService {
   }
 
   public scrollSpyOnFirst(querySelector) {
-    return Observable.fromEvent(window, 'scroll')
+    return this.onScrollEvent
       .map(event =>
         this.isElementInViewport(document.querySelector(querySelector))
       );
@@ -32,4 +32,15 @@ export class ScrollSpyService {
       rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
     );
   }
+
+  get onScrollEvent() {
+    return this.zone.runOutsideAngular(() => {
+      return Observable.fromEvent(window, 'scroll');
+    });
+  }
 }
+
+// just inject NgZone and call
+// this.zone.runOutsideAngular( () => { //stuff you don't want angular to know about till it's ready} )
+// then when you want to emit an event
+// this.zone.run(()=> { //event you want angular to know about}
